@@ -1,0 +1,469 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A股与美股自动化投研系统建设方案核心版：研究框架、个股方法、证据数据库、系统架构与实施路线。">
+  <title>A股与美股自动化投研系统｜核心方案</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #172b3a;
+      --muted: #5c6b76;
+      --paper: #ffffff;
+      --canvas: #f1f4f5;
+      --line: #d9e0e3;
+      --navy: #142c3d;
+      --navy-2: #1c3b4d;
+      --teal: #176c68;
+      --teal-pale: #e6f2f0;
+      --amber: #9b572d;
+      --amber-pale: #f8efe7;
+      --blue-pale: #eaf0f4;
+      --radius: 7px;
+      --shadow: 0 1px 2px rgba(20, 44, 61, .05), 0 10px 28px rgba(20, 44, 61, .035);
+      font-family: "Aptos", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+      scroll-behavior: smooth;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--canvas); color: var(--ink); font-size: 15px; line-height: 1.75; }
+    a { color: var(--teal); text-underline-offset: 3px; }
+    a:hover { color: #0c514e; }
+    a:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px solid #d99a5b; outline-offset: 3px; }
+    .skip { position: absolute; left: -9999px; top: 8px; z-index: 10; background: white; padding: 8px 12px; }
+    .skip:focus { left: 8px; }
+    .layout { display: grid; grid-template-columns: 252px minmax(0, 1fr); min-height: 100vh; }
+    aside { position: sticky; top: 0; height: 100vh; overflow-y: auto; padding: 30px 19px 24px; color: #edf4f5; background: var(--navy); }
+    .brand { display: flex; align-items: center; gap: 12px; padding: 1px 8px 25px; border-bottom: 1px solid rgba(255,255,255,.14); }
+    .brand-mark { width: 34px; height: 34px; display: grid; place-items: center; color: #12363d; background: #9bc8bb; font-size: 13px; font-weight: 800; letter-spacing: -.04em; border-radius: 5px; }
+    .brand-name { font-size: 13px; font-weight: 650; line-height: 1.35; letter-spacing: .015em; }
+    .brand-name small { display: block; margin-top: 3px; color: #acc0c8; font-size: 10px; font-weight: 500; letter-spacing: .04em; }
+    .nav-label { margin: 23px 8px 9px; color: #97adb8; font-size: 10px; letter-spacing: .12em; }
+    nav { display: grid; gap: 3px; }
+    nav a { display: flex; align-items: baseline; gap: 10px; padding: 8px 9px; color: #d4e0e4; text-decoration: none; font-size: 12px; border-radius: 4px; transition: background .15s ease, color .15s ease; }
+    nav a:hover, nav a.active { color: white; background: rgba(255,255,255,.1); }
+    nav a span { width: 17px; color: #88b7aa; font-size: 10px; font-variant-numeric: tabular-nums; }
+    .side-note { margin: 27px 7px 0; padding-top: 15px; border-top: 1px solid rgba(255,255,255,.14); color: #aec1c8; font-size: 11px; line-height: 1.65; }
+    .side-note strong { display: block; color: #e5eff0; font-size: 11px; font-weight: 600; }
+    .side-bottom { margin: 20px 7px 0; color: #809aa6; font-size: 10px; }
+    main { width: min(100%, 1240px); padding: 40px clamp(22px, 5vw, 76px) 64px; margin: 0 auto; }
+    .hero { position: relative; overflow: hidden; padding: 48px clamp(25px, 5vw, 58px) 40px; background: var(--navy); color: white; border-radius: 9px; box-shadow: var(--shadow); }
+    .hero::after { content: ""; position: absolute; right: -55px; top: -92px; width: 275px; height: 275px; border: 1px solid rgba(164,208,194,.24); border-radius: 50%; box-shadow: 0 0 0 27px rgba(164,208,194,.035), 0 0 0 58px rgba(164,208,194,.025); pointer-events: none; }
+    .hero-tag { display: inline-flex; align-items: center; gap: 9px; color: #bdd3d1; font-size: 11px; font-weight: 600; letter-spacing: .08em; }
+    .hero-tag::before { content: ""; width: 7px; height: 7px; background: #85b9a9; border-radius: 50%; }
+    h1 { max-width: 730px; margin: 21px 0 12px; color: white; font-size: clamp(32px, 4.5vw, 51px); font-weight: 640; letter-spacing: -.045em; line-height: 1.2; }
+    .hero p { max-width: 690px; margin: 0; color: #c5d4d9; font-size: 15px; }
+    .hero-rule { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 26px; }
+    .hero-rule span { padding: 4px 10px; color: #e0ecec; background: rgba(255,255,255,.09); border: 1px solid rgba(255,255,255,.1); border-radius: 3px; font-size: 11px; }
+    .hero-actions { position: absolute; top: 21px; right: 22px; z-index: 1; }
+    .print { padding: 7px 11px; color: #e4eeee; background: transparent; border: 1px solid rgba(255,255,255,.26); border-radius: 4px; font: inherit; font-size: 11px; cursor: pointer; }
+    .print:hover { background: rgba(255,255,255,.1); }
+    .metrics { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 1px; margin: 18px 0 39px; background: var(--line); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+    .metric { min-height: 85px; padding: 15px 18px; background: var(--paper); }
+    .metric b { display: block; color: var(--navy); font-size: 21px; font-weight: 650; line-height: 1.2; font-variant-numeric: tabular-nums; }
+    .metric span { display: block; margin-top: 5px; color: var(--muted); font-size: 11px; }
+    section { scroll-margin-top: 20px; margin: 0 0 40px; }
+    .section-head { display: flex; align-items: flex-start; gap: 15px; margin: 0 0 17px; }
+    .section-no { flex: 0 0 auto; min-width: 29px; padding-top: 6px; color: var(--teal); font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    h2 { margin: 0; color: var(--navy); font-size: 24px; font-weight: 650; letter-spacing: -.025em; line-height: 1.35; }
+    .deck { max-width: 780px; margin: 5px 0 0; color: var(--muted); font-size: 13px; }
+    h3 { margin: 0 0 9px; color: var(--navy); font-size: 16px; font-weight: 650; line-height: 1.45; }
+    h4 { margin: 0 0 6px; color: var(--navy); font-size: 13px; font-weight: 650; }
+    p { margin: 0 0 11px; }
+    .panel { padding: 21px 23px; background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; }
+    .mini { padding: 17px 18px; background: var(--paper); border: 1px solid var(--line); border-top: 2px solid #75a99b; border-radius: 4px; }
+    .mini p, .panel p { color: #425462; font-size: 13px; }
+    .mini p:last-child, .panel p:last-child { margin-bottom: 0; }
+    .flow { display: grid; grid-template-columns: repeat(6, minmax(0,1fr)); gap: 8px; align-items: stretch; }
+    .flow.research-flow { grid-template-columns: repeat(4,minmax(0,1fr)); }
+    .flow.research-flow .flow-step:nth-child(4n)::after { display: none; }
+    .flow-step { position: relative; min-height: 123px; padding: 15px 13px 13px; background: var(--paper); border: 1px solid var(--line); border-radius: 5px; }
+    .flow-step:not(:last-child)::after { content: "›"; position: absolute; top: 42%; right: -10px; z-index: 1; width: 16px; height: 23px; color: var(--teal); background: var(--canvas); text-align: center; font-size: 22px; line-height: 18px; }
+    .flow-step .k { color: var(--teal); font-size: 10px; font-weight: 700; letter-spacing: .04em; }
+    .flow-step h3 { margin: 7px 0 5px; font-size: 13px; }
+    .flow-step p { color: var(--muted); font-size: 11px; line-height: 1.55; }
+    .note { margin-top: 13px; padding: 11px 14px; background: var(--teal-pale); border-left: 3px solid var(--teal); color: #315654; font-size: 12px; }
+    .note.warn { background: var(--amber-pale); border-color: var(--amber); color: #69432d; }
+    .table-wrap { overflow-x: auto; background: var(--paper); border: 1px solid var(--line); border-radius: 5px; }
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 12px; line-height: 1.6; }
+    th, td { padding: 11px 13px; vertical-align: top; border-bottom: 1px solid var(--line); }
+    th { color: var(--navy); background: var(--blue-pale); font-size: 11px; font-weight: 700; white-space: nowrap; }
+    td { color: #40515e; }
+    tbody tr:last-child td { border-bottom: 0; }
+    tbody tr:nth-child(even) td { background: #fafbfb; }
+    td strong { color: var(--navy); font-weight: 650; }
+    .method-table td:first-child { width: 12%; min-width: 115px; }
+    .cols-2 { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 13px; margin-top: 13px; }
+    .clean { margin: 0; padding: 0; list-style: none; }
+    .clean li { position: relative; margin: 0 0 7px; padding-left: 15px; color: #43545f; font-size: 12px; line-height: 1.65; }
+    .clean li::before { content: ""; position: absolute; top: .72em; left: 0; width: 5px; height: 5px; background: var(--teal); border-radius: 1px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+    .chip { padding: 3px 8px; color: #31575c; background: var(--teal-pale); border-radius: 3px; font-size: 10px; }
+    .tagline { color: var(--muted); font-size: 11px; }
+    .detail-card { margin-top: 14px; background: #f8faf9; border: 1px solid var(--line); border-radius: 5px; }
+    details summary { padding: 12px 15px; color: var(--navy); font-size: 12px; font-weight: 650; cursor: pointer; }
+    details summary::marker { color: var(--teal); }
+    details .details-body { padding: 0 15px 15px; }
+    .capability-list { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 7px 18px; padding: 0; margin: 0; list-style: none; }
+    .capability-list li { display: flex; gap: 8px; color: #465763; font-size: 11px; line-height: 1.55; }
+    .capability-list b { flex: 0 0 18px; color: var(--teal); font-variant-numeric: tabular-nums; }
+    .tech-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 9px; }
+    .tech { padding: 14px 15px; background: var(--paper); border: 1px solid var(--line); border-radius: 4px; }
+    .tech strong { display: block; color: var(--navy); font-size: 12px; font-weight: 650; }
+    .tech span { display: block; margin-top: 3px; color: var(--teal); font-size: 11px; }
+    .tech p { margin: 5px 0 0; color: var(--muted); font-size: 10px; line-height: 1.55; }
+    .source-links { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+    .source-links a { padding: 5px 9px; background: var(--paper); border: 1px solid var(--line); border-radius: 4px; font-size: 11px; text-decoration: none; }
+    .small { color: var(--muted); font-size: 11px; }
+    .handoff { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px; margin: 14px 0; padding: 15px 17px; background: var(--teal-pale); border: 1px solid #c5ded7; border-radius: 5px; color: #315654; font-size: 12px; }
+    .handoff strong { color: var(--navy); font-size: 14px; }
+    .handoff .field { padding: 5px 11px; background: white; border: 1px solid #c5ded7; border-radius: 3px; }
+    .score-rule { margin-top: 13px; padding: 15px 18px; color: white; background: var(--navy); border-radius: 5px; }
+    .score-rule strong { display: block; margin-bottom: 6px; font-size: 15px; }
+    .score-rule p { margin: 0; color: #d0dfe3; font-size: 12px; }
+    .timeline { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); border: 1px solid var(--line); border-radius: 5px; overflow: hidden; background: var(--paper); }
+    .phase { padding: 14px 13px; border-right: 1px solid var(--line); }
+    .phase:last-child { border-right: 0; }
+    .phase time { color: var(--teal); font-size: 10px; font-weight: 700; }
+    .phase h3 { margin: 5px 0 6px; font-size: 12px; }
+    .phase p { color: var(--muted); font-size: 10px; line-height: 1.55; }
+    .phase p:last-child { margin-bottom: 0; }
+    .footer { margin-top: 40px; padding-top: 14px; color: #71808a; border-top: 1px solid var(--line); font-size: 10px; line-height: 1.6; }
+    @media (max-width: 1040px) {
+      .layout { grid-template-columns: 205px minmax(0,1fr); }
+      aside { padding-right: 12px; padding-left: 12px; }
+      main { padding-right: 30px; padding-left: 30px; }
+      .flow, .flow.research-flow { grid-template-columns: repeat(3,minmax(0,1fr)); }
+      .flow-step:nth-child(3)::after { display: none; }
+      .flow.research-flow .flow-step::after { display: block; }
+      .flow.research-flow .flow-step:nth-child(3n)::after { display: none; }
+      .timeline { grid-template-columns: repeat(3,minmax(0,1fr)); }
+      .phase:nth-child(3) { border-right: 0; }
+      .phase:nth-child(n+4) { border-top: 1px solid var(--line); }
+    }
+    @media (max-width: 720px) {
+      .layout { display: block; }
+      aside { position: relative; height: auto; padding: 12px 15px; overflow: visible; }
+      .brand { padding: 0; border: 0; }
+      .brand-mark { width: 29px; height: 29px; }
+      .brand-name small, .nav-label, .side-note, .side-bottom { display: none; }
+      nav { display: flex; gap: 3px; margin-top: 10px; overflow-x: auto; scrollbar-width: thin; }
+      nav a { flex: 0 0 auto; padding: 6px 8px; font-size: 11px; }
+      nav a span { display: none; }
+      main { padding: 19px 15px 38px; }
+      .hero { padding: 43px 21px 23px; }
+      .hero-actions { top: 12px; right: 13px; }
+      .hero::after { right: -190px; }
+      .hero p { font-size: 13px; }
+      .metrics { grid-template-columns: repeat(2,minmax(0,1fr)); margin-bottom: 30px; }
+      .metric { min-height: 72px; padding: 12px 13px; }
+      .metric b { font-size: 18px; }
+      h2 { font-size: 21px; }
+      .grid-3, .cols-2 { grid-template-columns: 1fr; }
+      .flow, .flow.research-flow { grid-template-columns: repeat(2,minmax(0,1fr)); }
+      .flow-step:nth-child(3)::after { display: block; }
+      .flow-step:nth-child(even)::after { display: none; }
+      .flow.research-flow .flow-step::after { display: block; }
+      .flow.research-flow .flow-step:nth-child(even)::after { display: none; }
+      .tech-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+      .capability-list { grid-template-columns: repeat(2,minmax(0,1fr)); }
+      .timeline { grid-template-columns: 1fr; }
+      .phase, .phase:nth-child(3) { border-right: 0; border-top: 1px solid var(--line); }
+      .phase:first-child { border-top: 0; }
+      .section-head { gap: 10px; }
+      .section-no { min-width: 24px; }
+      .panel { padding: 17px; }
+      section { margin-bottom: 32px; }
+      .method-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+      .method-table, .method-table tbody, .method-table tr { display: block; }
+      .method-table tr { padding: 13px 15px; border-bottom: 1px solid var(--line); }
+      .method-table tr:last-child { border-bottom: 0; }
+      .method-table td { display: grid; grid-template-columns: 72px minmax(0,1fr); gap: 9px; padding: 5px 0; border: 0; background: transparent !important; }
+      .method-table td:first-child { display: block; width: auto; min-width: 0; padding-top: 0; padding-bottom: 8px; font-size: 14px; }
+      .method-table td[data-label]::before { content: attr(data-label); color: var(--muted); font-size: 11px; }
+    }
+    @media (max-width: 400px) {
+      .tech-grid, .capability-list { grid-template-columns: 1fr; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+    }
+    @media print {
+      :root { --canvas: #fff; --paper: #fff; --shadow: none; }
+      body { background: white; font-size: 11px; }
+      .layout { display: block; }
+      aside, .hero-actions { display: none !important; }
+      main { width: 100%; padding: 0; }
+      .hero { padding: 25px 28px; border-radius: 0; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      .metrics, .table-wrap, .panel, .mini, .tech-grid, .timeline, .detail-card { break-inside: avoid; }
+      section { break-before: auto; margin-bottom: 24px; }
+      h2, h3 { break-after: avoid; }
+      a { color: inherit; text-decoration: none; }
+      details:not([open]) .details-body { display: block; }
+      .footer { margin-top: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#content">跳到正文</a>
+  <div class="layout">
+    <aside aria-label="页面导航">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">研</div>
+        <div class="brand-name">自动化投研系统<small>建设方案 初稿</small></div>
+      </div>
+      <div class="nav-label">方案导航</div>
+      <nav>
+        <a href="#mandate"><span>01</span>建设范围</a>
+        <a href="#research-map"><span>02</span>研究框架</a>
+        <a href="#industry-methods"><span>03</span>行业方法</a>
+        <a href="#company-research"><span>04</span>个股研究</a>
+        <a href="#evidence"><span>05</span>数据库与证据</a>
+        <a href="#workflow"><span>06</span>自动化流程</a>
+        <a href="#dual-model"><span>07</span>双模型与入池</a>
+        <a href="#architecture"><span>08</span>系统与数据</a>
+        <a href="#delivery"><span>09</span>验收与路线图</a>
+      </nav>
+      <div class="side-note"><strong>适用定位</strong>公司内部研究工具。自动发现、研究、成稿和跟踪。</div>
+    </aside>
+
+    <main id="content">
+      <header class="hero">
+        <div class="hero-actions"><button class="print" type="button" onclick="window.print()" aria-label="打印或保存为PDF">打印 / 保存 PDF</button></div>
+        <div class="hero-tag">中长期基本面 · 产业趋势驱动</div>
+        <h1>A股与美股<br>自动化投研系统</h1>
+        <p>自动选题、产业与个股研究、报告生成、论点跟踪。证据、经营模型与历史判断存入公司数据库。</p>
+        <div class="hero-rule"><span>自动选题与跟踪</span><span>按业务选择研究方法</span><span>不包含自动交易</span></div>
+      </header>
+
+      <div class="metrics" aria-label="建设规模建议">
+        <div class="metric"><b>2 个主题</b><span>先从公司熟悉的产业开始</span></div>
+        <div class="metric"><b>50–100 家</b><span>首期覆盖公司池</span></div>
+        <div class="metric"><b>约 10 家</b><span>建立完整经营底稿</span></div>
+        <div class="metric"><b>严格高于 80 分</b><span>双模型复核后的候选入池门槛</span></div>
+      </div>
+
+      <section id="mandate">
+        <div class="section-head"><div class="section-no">01</div><div><h2>建设范围</h2><p class="deck">先解决研究信息分散、重复核查、口径不一，以及新信息出现后论点难以追踪的问题。</p></div></div>
+        <div class="grid-3">
+          <article class="mini"><h3>系统负责什么</h3><p>自动发现研究线索，整理产业和公司证据，更新经营模型，生成报告并持续跟踪论点。</p></article>
+          <article class="mini"><h3>研究看多远</h3><p>以 6–24 个月的中长期基本面为主，从产业需求、供需和利润分配，追踪到公司经营、现金流与估值。</p></article>
+          <article class="mini"><h3>首期怎么控范围</h3><p>两个产业主题、50–100 家覆盖公司、约 10 家深度研究。先验证一家公司从首次研究到新披露更新的闭环。</p></article>
+        </div>
+      </section>
+
+      <section id="research-map">
+        <div class="section-head"><div class="section-no">02</div><div><h2>研究从宏观走到个股，也可以从个股事件反推</h2><p class="deck">每一步都要交代传导条件；行业增长或主题相关性本身，不等于公司利润增长。</p></div></div>
+        <div class="flow" aria-label="研究传导路径">
+          <article class="flow-step"><div class="k">环境条件</div><h3>宏观情景</h3><p>需求、利率、信用、汇率、贸易与政策。</p></article>
+          <article class="flow-step"><div class="k">趋势与约束</div><h3>产业发展</h3><p>需求变化、技术路线、供给约束和发展阶段。</p></article>
+          <article class="flow-step"><div class="k">谁获得回报</div><h3>产业链</h3><p>订单、利润与现金流如何在上下游分配。</p></article>
+          <article class="flow-step"><div class="k">公司竞争</div><h3>业务与客户</h3><p>产品是否匹配，份额、交付和客户关系能否兑现。</p></article>
+          <article class="flow-step"><div class="k">经营结果</div><h3>盈利与现金</h3><p>量价、成本、投入、利润率和资金需求。</p></article>
+          <article class="flow-step"><div class="k">投资判断</div><h3>估值与论点</h3><p>比较市场预期，设定验证点与失效条件。</p></article>
+        </div>
+        <div class="note">新客户、产品迭代、财报变化或产能延期，也可以直接触发公司研究，再反向检验产业假设；已完成的上层研究按需复用。</div>
+      </section>
+
+      <section id="industry-methods">
+        <div class="section-head"><div class="section-no">03</div><div><h2>按业务特征选方法，不给所有公司套同一模板</h2><p class="deck">“周期性”和“成长／成熟阶段”是两条不同维度：成长业务也可能正处于供给周期。</p></div></div>
+        <div class="table-wrap"><table class="method-table">
+          <thead><tr><th>业务画像</th><th>主要研究问题</th><th>经营模型重点</th><th>估值重点</th></tr></thead>
+          <tbody>
+            <tr><td><strong>周期性</strong></td><td data-label="主要问题">供需和库存处于什么位置？盈利中枢变了吗？低谷能否存活？</td><td data-label="经营模型">量价、成本曲线、有效供给、产能退出、债务与低谷现金。</td><td data-label="估值重点">正常化盈利与周期情景；避免把高点利润当长期盈利。</td></tr>
+            <tr><td><strong>结构性成长</strong></td><td data-label="主要问题">增长来自哪些产品和客户？交付、份额与商业化能否兑现？</td><td data-label="经营模型">收入驱动、单位经济性、再投资、营运资金、融资和稀释。</td><td data-label="估值重点">多阶段现金流；检验技术替代、降价和现金消耗情景。</td></tr>
+            <tr><td><strong>成熟经营</strong></td><td data-label="主要问题">竞争优势能否维持？现金是否可持续？资本如何分配？</td><td data-label="经营模型">销量与价格、留存或复购、必要再投资、可分配现金。</td><td data-label="估值重点">稳定或衰退情景；结合债务、投入评估股息与净回购。</td></tr>
+          </tbody>
+        </table></div>
+        <div class="cols-2">
+          <article class="panel"><h3>先拆分业务，再选模板</h3><p>多业务公司按分部分别记录发展阶段、周期驱动、商业模式、资本密集度、盈利和现金流状态。业务结构或技术路线改变时重新判断。</p></article>
+          <article class="panel"><h3>专业方法按需添加</h3><p>金融看资产质量与信用成本；创新药看临床、监管、专利和资金续航；公用事业看费率与受监管回报；资源看储量、品位和维护成本。</p></article>
+        </div>
+      </section>
+
+      <section id="company-research">
+        <div class="section-head"><div class="section-no">04</div><div><h2>个股研究围绕“公司如何创造现金回报”展开</h2><p class="deck">每家公司维护统一底稿；按公司业务选用模块，单次更新只修改受影响部分。</p></div></div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>底稿模块</th><th>要回答的问题</th></tr></thead>
+          <tbody>
+            <tr><td><strong>商业模式与业务</strong></td><td>谁经营、卖什么、向谁收费？收入、成本、资产投入和资金周转如何形成？</td></tr>
+            <tr><td><strong>产品与未来发展</strong></td><td>技术路线、产品迭代和替代风险是什么？增长依赖哪些商业化条件与投入？</td></tr>
+            <tr><td><strong>客户与潜在客户</strong></td><td>直接采购方与终端用户是谁？客户集中度、认证、订单和替代空间如何？</td></tr>
+            <tr><td><strong>产能与项目</strong></td><td>现有、在建和新增产能分别多少？建设、试产、认证、爬坡与商业化到哪一步？</td></tr>
+            <tr><td><strong>壁垒与竞争</strong></td><td>性能、良率、成本、切换、品牌或渠道是否带来可持续回报？同业是否真正可比？</td></tr>
+            <tr><td><strong>财报、治理与估值</strong></td><td>利润是否转成现金？债务、资本开支、稀释、管理层指引和当前估值意味着什么？</td></tr>
+          </tbody>
+        </table></div>
+        <div class="cols-2">
+          <article class="panel"><h3>客户关系按证据记录</h3><p>已发生销售、合同或订单、送样与认证、潜在适配需求、未核实传闻分别记录。不能把送样或定点写成订单，更不能从匿名客户猜测实名。</p></article>
+          <article class="panel"><h3>产能不能重复计算</h3><p>规划、在建、投产、达产分开；扩产替换旧线时算净增。厂房转固不等于已商业化，预测还要核订单、交付、折旧、营运资金和资本开支。</p></article>
+        </div>
+        <div class="note">财报数字与经营数据先对齐主体、期间、币种、单位、合并口径和存量／流量，再核对订单、交付、收入、应收、现金、库存、产能与份额。差额保留待解释，不强行配平。</div>
+        <div class="panel" style="margin-top:13px"><h3>研究结论必须说清三件事</h3><ul class="clean"><li><strong>预期差在哪：</strong>内部判断与有来源的市场预期同口径比较，差异落到销量、价格、份额、成本等驱动；缺少一致预期就明确缺失。</li><li><strong>判断靠什么成立：</strong>每家公司维护约 3–7 条核心假设，绑定证据、经营情景、模型参数、验证节点和失效条件；核查优先处理最影响结论的问题。</li><li><strong>后续怎样判断对错：</strong>冻结发布时的预测，区分未到期、延期、部分兑现与失败；到期后比较同口径实际，旧判断不能被新版本覆盖。</li></ul></div>
+      </section>
+
+      <section id="evidence">
+        <div class="section-head"><div class="section-no">05</div><div><h2>建公司的研究数据库：每条判断都能回到证据</h2><p class="deck">数据库保存原始材料、结构化事实、关系、计算、论点和历史版本；检索用于找材料，不能替代来源与口径。</p></div></div>
+        <div class="grid-3">
+          <article class="mini"><h3>研究对象</h3><p>上市及非上市公司、证券、分部、产品、客户、供应商、竞争者、行业与研究参考机构。</p></article>
+          <article class="mini"><h3>研究资产</h3><p>原始披露、证据片段、财务指标、客户关系、产能项目、计算、情景、论点、报告和复盘。</p></article>
+          <article class="mini"><h3>关键时间</h3><p>事实适用时间、公开时间、系统首次获知时间、修订时间。历史预测用当时可得版本。</p></article>
+        </div>
+        <div class="cols-2">
+          <article class="panel"><h3>事实与观点分开</h3><ul class="clean"><li>事实、管理层指引、外部预测、内部假设和推断分别标记。</li><li>缺失不填零；过期不当成最新；原值、修订和冲突不覆盖。</li><li>数字回链到公式、输入、来源及原文页码或表格。</li></ul></article>
+          <article class="panel"><h3>来源与适用性分开核查</h3><ul class="clean"><li>多家媒体转载同一公告仍是一个源头，多个 Agent 重复总结也不是新证据。</li><li>“公司计划扩产”证明计划存在，不证明按期投产。</li><li>关键证据冲突或失效，要定位并限制相关论点；补证后才恢复。</li></ul></article>
+        </div>
+        <div class="detail-card"><details>
+          <summary>展开查看已确定的 17 项研究能力</summary>
+          <div class="details-body"><ol class="capability-list">
+            <li><b>01</b><span>经营判断与市场预期对照</span></li>
+            <li><b>02</b><span>产业订单、利润与现金分配</span></li>
+            <li><b>03</b><span>关联公司的共同驱动因素</span></li>
+            <li><b>04</b><span>兑现路径、延期与失败条件</span></li>
+            <li><b>05</b><span>冻结预测版本并事后复盘</span></li>
+            <li><b>06</b><span>历史案例与统计基准率分开</span></li>
+            <li><b>07</b><span>经营结论与证券适用性分开</span></li>
+            <li><b>08</b><span>证据独立性与结论降级</span></li>
+            <li><b>09</b><span>一页总览链接完整研究底稿</span></li>
+            <li><b>10</b><span>事实到判断的可核查论证链</span></li>
+            <li><b>11</b><span>区分事实、经营、估值不确定性</span></li>
+            <li><b>12</b><span>按结论影响和成本安排核查</span></li>
+            <li><b>13</b><span>经营数据与财务数据相互勾稽</span></li>
+            <li><b>14</b><span>每次研究更新说明变化原因</span></li>
+            <li><b>15</b><span>记录暂缓研究的原因与重评条件</span></li>
+            <li><b>16</b><span>双模型隔离研究、反向论证与分歧处理</span></li>
+            <li><b>17</b><span>按报告版本收集使用反馈并验证改进</span></li>
+          </ol></div>
+        </details></div>
+      </section>
+
+      <section id="workflow">
+        <div class="section-head"><div class="section-no">06</div><div><h2>发现机会、反向验证、评分入池、持续跟踪</h2><p class="deck">模型 A 按完整框架研究，模型 B 独立寻找反证；关键分歧解决后再评分。</p></div></div>
+        <div class="flow research-flow">
+          <article class="flow-step"><div class="k">发现</div><h3>扫描与去重</h3><p>检查公告、财报、产业指标和关键客户事件。</p></article>
+          <article class="flow-step"><div class="k">模型 A</div><h3>完整研究与提名</h3><p>分析产业、公司、财务和估值，提出候选。</p></article>
+          <article class="flow-step"><div class="k">隔离交接</div><h3>只给两个字段</h3><p>传递行业与标的，不传分析、评分或推荐理由。</p></article>
+          <article class="flow-step"><div class="k">模型 B</div><h3>独立反向研究</h3><p>自行检索，检查行业与公司的弱点和失败条件。</p></article>
+          <article class="flow-step"><div class="k">交换证据</div><h3>逐条辩论与补证</h3><p>核对事实、机制和估值，记录分歧及判断修订。</p></article>
+          <article class="flow-step"><div class="k">规则筛选</div><h3>评分与候选入池</h3><p>总分严格高于 80 且通过关键检查，进入对应池。</p></article>
+          <article class="flow-step"><div class="k">跟踪</div><h3>验证论点</h3><p>跟进验证节点、失效条件、延期和未兑现事项。</p></article>
+          <article class="flow-step"><div class="k">改进</div><h3>复盘与反馈</h3><p>分开记录使用反馈、经营结果和确认缺陷。</p></article>
+        </div>
+        <div class="note">原始材料、分析、反证和淘汰理由进入研究资料库；只有通过筛选的对象进入最终候选池。暂缓对象保留重评条件，新信息出现后重新检查。</div>
+        <div class="cols-2">
+          <article class="panel"><h3>核心公司报告</h3><p>第一页呈现 1–3 条核心论点、支持与反方证据、经营情景、估值、不确定性、下次验证点和结论限制；可展开原文、模型和客户／产能底稿。</p></article>
+          <article class="panel"><h3>日常研究交付</h3><p><strong>事件简报</strong>发现重要变化；<strong>主题档案</strong>追踪产业和候选公司；<strong>深度报告</strong>建立完整底稿；<strong>变化单</strong>解释论点变化；<strong>复盘</strong>对照事前预测与实际。</p></article>
+        </div>
+      </section>
+
+      <section id="dual-model">
+        <div class="section-head"><div class="section-no">07</div><div><h2>两个模型：一个找机会，一个专门找漏洞</h2><p class="deck">建议使用不同基础模型。反向研究先独立完成并冻结，再交换材料。两个模型仍可能有共同偏差，B 也只能复核 A 已提名的对象。</p></div></div>
+        <div class="cols-2" style="margin-top:0">
+          <article class="panel"><h3>模型 A 负责完整研究</h3><p>按既定框架研究宏观、产业链、公司、财报、客户、产能与估值。认为值得入池时提名，并保存自己的论点、证据和初始判断。</p></article>
+          <article class="panel"><h3>模型 B 负责反向论证</h3><p>自行查找需求落空、供给过剩、技术替代、客户流失、产能延期、财务现金流和估值问题。每个质疑要有依据；查不到反证就记录未知，不编造负面结论。</p></article>
+        </div>
+        <div class="handoff" aria-label="模型A交给模型B的唯一候选信息"><strong>A 首次只传给 B</strong><span class="field">行业名称</span><span class="field">标的名称／市场代码</span></div>
+        <p class="small">行业任务的标的字段留空。研究截止时点、数据权限和固定任务规则由系统统一配置；B 不读取 A 的报告、得分、推荐理由、摘要或历史讨论，也不能从检索库间接看到这些内容。</p>
+        <div class="cols-2">
+          <article class="panel"><h3>辩论按争议点进行</h3><ul class="clean"><li>B 冻结反向报告后，双方交换证据与论点。</li><li>每项质疑记录来源、影响、回应、补证和剩余分歧。</li><li>首期最多两轮：第一轮质询回应，第二轮补证修订；到限仍有关键分歧就暂缓。</li><li>A 可以撤回候选，B 可以撤回不成立的质疑；不以“说服对方”作为通过条件。</li></ul></article>
+          <article class="panel"><h3>以下问题不能靠高分抵消</h3><ul class="clean"><li>支撑核心判断的关键事实缺证或仍有冲突。</li><li>关键反证未核清，或失败情景没有解释。</li><li>重要计算无法复现，关键维度资料不足。</li><li>个股的估值、证券权益或换算依据未确认。</li></ul></article>
+        </div>
+        <h3 style="margin:22px 0 11px">行业和个股分开评分，满分均为 100</h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th>个股评分维度</th><th>权重</th><th>行业评分维度</th><th>权重</th></tr></thead>
+          <tbody>
+            <tr><td>商业质量与壁垒</td><td>20</td><td>需求持续性</td><td>25</td></tr>
+            <tr><td>增长与经营兑现</td><td>20</td><td>供给与竞争结构</td><td>20</td></tr>
+            <tr><td>财务质量与现金流</td><td>20</td><td>利润留存能力</td><td>20</td></tr>
+            <tr><td>估值与安全边际</td><td>25</td><td>兑现条件与可观测指标</td><td>15</td></tr>
+            <tr><td>下行情景承受能力</td><td>15</td><td>下行情景与替代风险</td><td>20</td></tr>
+          </tbody>
+        </table></div>
+        <p class="small" style="margin-top:10px">初始评分建议：每维度按 0–5 档评分，再按权重计算。0 为条件不成立，3 为基本成立，5 为多项证据支持且主要弱点已核清；1、2、4 为中间档。缺证标记待核，不补分。用历史案例校准分档与权重。</p>
+        <div class="score-rule"><strong>最终分 = 双方辩论后分别评分的较低值；严格大于 80 分才可入池</strong><p>双方逐维度给出依据，由程序汇总，不平均总分、不因达成共识加分。还须通过关键检查；80 分及以下、缺证或关键分歧未解的对象暂缓或淘汰。评分是研究筛选标准，不是成功概率。</p></div>
+        <div class="note">行业通过后进入行业候选库，个股通过后进入投资候选池；行业入库不代表相关个股自动通过。保存两方初稿、反证、辩论、最终分项、资料截止时点、参考行情和失效条件；重大新披露、估值条件变化或论点失效时重新核查与评分，必要时移出候选池。</div>
+      </section>
+
+      <section id="architecture">
+        <div class="section-head"><div class="section-no">08</div><div><h2>统一后台与数据库，再按需要扩展</h2><p class="deck">研究数据、任务进度、证据版本与发布记录由公司统一管理，避免多套开源项目各自形成状态和口径。</p></div></div>
+        <div class="tech-grid">
+          <div class="tech"><strong>研究与财务计算</strong><span>Python</span><p>版本化公式、可追溯输入，财务计算使用确定性程序。</p></div>
+          <div class="tech"><strong>研究流程</strong><span>LangGraph</span><p>管理任务步骤与检查点，研究资产单独持久化。</p></div>
+          <div class="tech"><strong>后端与调度</strong><span>FastAPI + 工作进程</span><p>处理触发、重试、状态、预算和异常任务。</p></div>
+          <div class="tech"><strong>结构化数据与搜索</strong><span>PostgreSQL + pgvector</span><p>先用关系表、全文与向量检索；不预建图数据库。</p></div>
+          <div class="tech"><strong>材料和研究工作台</strong><span>S3 兼容存储 + 内部 Web</span><p>保留原文、解析结果和报告版本，支持证据回溯。</p></div>
+          <div class="tech"><strong>双模型与评分</strong><span>A 完整研究 + B 独立反证</span><p>隔离检索与上下文；固定规则由程序算分和执行入池条件。</p></div>
+        </div>
+        <div class="cols-2">
+          <article class="panel"><h3>三个参考项目各取所长</h3><ul class="clean"><li><strong>ai-berkshire：</strong>产业地图、筛选、公司分析与反证。</li><li><strong>Vibe-Research：</strong>分阶段研究、证据／计算编号和复核。</li><li><strong>TradingAgents-astock：</strong>流程编排、检查点与质询机制。</li></ul><p class="small">复用模块需经过真实任务验证。公司仍需补齐后台常驻运行、统一数据、持续跟踪和权限管理。代码许可与数据、研报、新闻的使用权分别核验。</p></article>
+          <article class="panel"><h3>数据优先顺序</h3><ul class="clean"><li><strong>A 股：</strong>交易所、巨潮资讯、公司投资者关系材料。</li><li><strong>美股：</strong>SEC EDGAR、公司投资者关系材料。</li><li><strong>已有终端：</strong>核实 Wind、iFinD、Choice 等程序化权限后优先复用；Tushare 等按字段和许可核查。</li><li><strong>行业指标：</strong>政府、监管、协会、公司披露及已授权数据库。每个主题先定 5–10 个能验证论点的指标。</li></ul></article>
+        </div>
+        <div class="source-links" aria-label="参考开源项目">
+          <a href="https://github.com/xbtlin/ai-berkshire" target="_blank" rel="noopener noreferrer">ai-berkshire 源码</a>
+          <a href="https://github.com/simonlin1212/Vibe-Research" target="_blank" rel="noopener noreferrer">Vibe-Research 源码</a>
+          <a href="https://github.com/simonlin1212/TradingAgents-astock" target="_blank" rel="noopener noreferrer">TradingAgents-astock 源码</a>
+          <a href="https://www.cninfo.com.cn/" target="_blank" rel="noopener noreferrer">巨潮资讯</a>
+          <a href="https://www.sec.gov/edgar" target="_blank" rel="noopener noreferrer">SEC EDGAR</a>
+        </div>
+        <div class="note">立项前先盘点每个字段的来源、覆盖和历史、延迟、许可、存储与模型处理限制。新闻和转载用于找线索，重要结论继续核对原始材料。</div>
+      </section>
+
+      <section id="delivery">
+        <div class="section-head"><div class="section-no">09</div><div><h2>先用代表任务验收研究质量，再扩大覆盖</h2><p class="deck">试点验证流程能否追踪、更新和纠错；长期预测能力需要等待经营结果。</p></div></div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>建议门槛</th><th>试点怎么验证</th></tr></thead>
+          <tbody>
+            <tr><td><strong>引用与证据</strong></td><td>关键事实、数字和判断有来源或明确假设；抽样引用支持度目标 ≥95%，关键误引必须修复。</td></tr>
+            <tr><td><strong>预测与版本</strong></td><td>核心计算案例通过；旧预测保留；更正或失效能限制相关结论。</td></tr>
+            <tr><td><strong>双模型筛选</strong></td><td>B 首次只能收到行业和标的，不能检索到 A 的输出；验证 80 分不入池、超过 80 但关键检查失败仍不入池，且保留完整评分依据。</td></tr>
+            <tr><td><strong>自动运行</strong></td><td>范围内、来源齐全的日常任务，目标 ≥90% 无需人工干预；同时统计全部异常和缺证任务。</td></tr>
+            <tr><td><strong>更新时效</strong></td><td>约定条件下，常规变化单目标在采集后 60 分钟内完成；另计来源披露到采集的延迟。</td></tr>
+            <tr><td><strong>案例与成本</strong></td><td>先建立 30–50 个代表案例，比较完整流程与单模型基线；按真实帮助、核查时间和费用决定扩容。</td></tr>
+          </tbody>
+        </table></div>
+        <h3 style="margin:22px 0 11px">实施路线</h3>
+        <div class="timeline">
+          <article class="phase"><time>第 1–2 周</time><h3>盘点与定标准</h3><p>确定主题、公司名单、数据权限、样稿、案例和预算；复估工作量。</p></article>
+          <article class="phase"><time>第 3–5 周</time><h3>跑通单公司</h3><p>完成 A 研究、B 反证、辩论评分与新披露更新，验证隔离和入池规则。</p></article>
+          <article class="phase"><time>第 6–8 周</time><h3>扩展至核心公司</h3><p>约 10 家深研，覆盖两市场和两个主题，校准利润分配与成本。</p></article>
+          <article class="phase"><time>第 9–11 周</time><h3>稳定自动运行</h3><p>验证任务恢复、版本统一、工作台、分歧处理和预算控制。</p></article>
+          <article class="phase"><time>第 12–16 周</time><h3>连续试运行验收</h3><p>连续运行至少两周，复核质量、时效、异常和费用后再扩覆盖。</p></article>
+        </div>
+      </section>
+
+    </main>
+  </div>
+  <script>
+    (function () {
+      var printDetails = [];
+      window.addEventListener('beforeprint', function () {
+        printDetails = Array.prototype.slice.call(document.querySelectorAll('details:not([open])'));
+        printDetails.forEach(function (detail) { detail.open = true; });
+      });
+      window.addEventListener('afterprint', function () {
+        printDetails.forEach(function (detail) { detail.open = false; });
+        printDetails = [];
+      });
+      var links = Array.prototype.slice.call(document.querySelectorAll('nav a'));
+      var sections = links.map(function (link) { return document.querySelector(link.getAttribute('href')); }).filter(Boolean);
+      if (!('IntersectionObserver' in window)) return;
+      var observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (!entry.isIntersecting) return;
+          links.forEach(function (link) {
+            var active = link.getAttribute('href') === '#' + entry.target.id;
+            link.classList.toggle('active', active);
+            if (active) link.setAttribute('aria-current', 'location');
+            else link.removeAttribute('aria-current');
+          });
+        });
+      }, { rootMargin: '-12% 0px -74% 0px' });
+      sections.forEach(function (section) { observer.observe(section); });
+    }());
+  </script>
+</body>
+</html>
